@@ -30,59 +30,53 @@ public class NotificationService {
     }
 
     /**
-     * Envoie une notification par email.
+     * Envoie une notification via le canal choisi par l'utilisateur.
+     * Le champ "channel" dans la requete determine le canal : EMAIL ou WHATSAPP
      */
     public NotificationResponse send(NotificationRequest request) {
         String id = UUID.randomUUID().toString().substring(0, 8);
+        String channel = request.getChannel().toUpperCase();
 
-        log.info("[{}] Nouvelle notification | type={} dest={}",
-                id, request.getType(), request.getRecipient());
+        log.info("[{}] Nouvelle notification | type={} canal={} dest={} pdf={}",
+                id, request.getType(), channel, request.getRecipient(),
+                request.getAttachmentUrl() != null ? "oui" : "non");
 
-        // Déterminer le canal
-        String channel = "EMAIL"; // par défaut
-        if (request.getRecipient().matches("\\d{8,15}")) {
-            // Si le destinataire est un numéro de téléphone → WhatsApp
-            channel = "WHATSAPP";
-        }
-
+        // Trouver le sender du canal demande
         NotificationSender sender = senders.get(channel);
         if (sender == null) {
-            log.error("[{}] Canal {} non disponible", id, channel);
+            log.error("[{}] Canal {} non disponible. Canaux actifs : {}",
+                    id, channel, senders.keySet());
             return saveAndReturn(id, request, channel, "FAILED",
-                    "Canal " + channel + " non disponible");
+                    "Canal " + channel + " non disponible. "
+                            + "Canaux disponibles : " + senders.keySet());
         }
 
+        // Envoyer
         try {
             boolean ok = sender.send(request);
             if (ok) {
-                log.info("[{}] SENT via {}", id, channel);
+                log.info("[{}] SENT via {} avec succes", id, channel);
                 return saveAndReturn(id, request, channel, "SENT", null);
             } else {
-                return saveAndReturn(id, request, channel, "FAILED", "Echec envoi");
+                log.error("[{}] Echec envoi via {}", id, channel);
+                return saveAndReturn(id, request, channel, "FAILED",
+                        "Echec envoi " + channel);
             }
         } catch (Exception e) {
             log.error("[{}] ERREUR {} : {}", id, channel, e.getMessage());
-            return saveAndReturn(id, request, channel, "FAILED", e.getMessage());
+            return saveAndReturn(id, request, channel, "FAILED",
+                    e.getMessage());
         }
     }
 
-    /**
-     * Historique complet.
-     */
     public List<NotificationResponse> getAll() {
         return new ArrayList<>(history.values());
     }
 
-    /**
-     * Chercher par ID.
-     */
     public NotificationResponse getById(String id) {
         return history.get(id);
     }
 
-    /**
-     * Statistiques.
-     */
     public Map<String, Object> getStats() {
         long total = history.size();
         long sent = history.values().stream()
@@ -90,16 +84,26 @@ public class NotificationService {
         long failed = history.values().stream()
                 .filter(n -> "FAILED".equals(n.getStatus())).count();
 
+        Map<String, Long> byChannel = history.values().stream()
+                .collect(Collectors.groupingBy(
+                        NotificationResponse::getChannel,
+                        Collectors.counting()
+                ));
+
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("total", total);
         stats.put("sent", sent);
         stats.put("failed", failed);
-        stats.put("success_rate", total > 0 ? Math.round(sent * 100.0 / total) : 0);
+        stats.put("success_rate", total > 0
+                ? Math.round(sent * 100.0 / total) : 0);
+        stats.put("by_channel", byChannel);
         return stats;
     }
 
-    private NotificationResponse saveAndReturn(String id, NotificationRequest req,
-                                               String channel, String status,
+    private NotificationResponse saveAndReturn(String id,
+                                               NotificationRequest req,
+                                               String channel,
+                                               String status,
                                                String error) {
         NotificationResponse resp = NotificationResponse.builder()
                 .id(id)

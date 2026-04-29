@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8082
 
 spring:
   application:
@@ -25,7 +25,9 @@ logging:
   level:
     com.robocare: DEBUG
     root: INFO
-
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
 whatsapp:
   token: ${WHATSAPP_TOKEN:disabled}
   phone-id: ${WHATSAPP_PHONE_ID:disabled}

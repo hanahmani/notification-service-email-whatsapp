@@ -27,10 +27,10 @@ RUN chown robocare:robocare app.jar
 
 USER robocare
 
-EXPOSE 8080
+EXPOSE 8082
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/notifications/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8082/notifications/health || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
