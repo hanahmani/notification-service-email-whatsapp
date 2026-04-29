@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -14,10 +15,11 @@ import java.time.LocalDateTime;
 public class NotificationResponse {
 
     private String id;
-    private String type;
-    private String channel;
-    private String recipient;
-    private String status;
+    private String channel;         // EMAIL, WHATSAPP, SMS
+    private List<String> to;
+    private String status;          // SENT, FAILED, PARTIAL
+    private int successCount;
+    private int failCount;
     private String message;
     private LocalDateTime timestamp;
     private String errorDetails;
