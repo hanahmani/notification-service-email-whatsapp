@@ -1,0 +1,38 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: robocare-notification-service
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:test@gmail.com}
+    password: ${MAIL_PASSWORD:test}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enabled: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+whatsapp:
+  token: ${WHATSAPP_TOKEN:disabled}
+  phone-id: ${WHATSAPP_PHONE_ID:disabled}
+  api-url: https://graph.facebook.com/v21.0
+
+#sms:
+  #provider: ${SMS_PROVIDER:tunisiesms}
+  #api-id: ${TUNISIESMS_ID:disabled}
+  #api-url: ${TUNISIESMS_URL:https://api.tunisiesms.tn/sms/send}
+  #sender-name: ${SMS_SENDER_NAME:RoboCare}
+
+logging:
+  level:
+    com.robocare: DEBUG
+    root: INFO
