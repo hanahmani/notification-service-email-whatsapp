@@ -1,27 +1,58 @@
-version: '3.8'
-
 services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: robocare-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: robocare_notifications
+      MYSQL_USER: robocare
+      MYSQL_PASSWORD: robocare123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - robocare-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   robocare-notification:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: robocare-notification-service
     ports:
-      - "8082:8082"
-    environment:
-      - MAIL_USERNAME=${MAIL_USERNAME}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
-      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
-      - WHATSAPP_PHONE_ID=${WHATSAPP_PHONE_ID}
-      #- TUNISIESMS_ID=${TUNISIESMS_ID}
-      #- JAVA_OPTS=-Xms256m -Xmx512m
+      - "8081:8081"
 
+    # ✅ CLEAN WAY: load all env variables from .env file
+    env_file:
+      - .env
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    networks:
+      - robocare-network
     restart: unless-stopped
 
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider",
-             "http://localhost:8082/api/notifications/health"]
+             "http://localhost:8081/api/notifications/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+
+volumes:
+  mysql_data:
+
+networks:
+  robocare-network:
+    driver: bridge

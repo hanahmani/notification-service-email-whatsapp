@@ -4,13 +4,11 @@ import com.robocare.notification.dto.NotificationResponse;
 import com.robocare.notification.dto.SmsRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -20,48 +18,43 @@ public class SmsService {
     @Value("${sms.api-id:disabled}")
     private String apiId;
 
-    @Value("${sms.api-url:https://api.tunisiesms.tn/sms/send}")
+    @Value("${sms.api-url}")
     private String apiUrl;
 
-    @Value("${sms.sender-name:RoboCare}")
+    @Value("${sms.sender-name}")
     private String senderName;
+
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    /**
-     * Envoie un SMS a un ou plusieurs destinataires via TunisieSMS.
-     */
     public NotificationResponse send(SmsRequest request) {
         String id = UUID.randomUUID().toString().substring(0, 8);
+
         int success = 0;
         int fail = 0;
         String lastError = null;
 
         if ("disabled".equals(apiId)) {
             return NotificationResponse.builder()
-                    .id(id).channel("SMS").to(request.getTo())
-                    .status("FAILED").successCount(0)
+                    .id(id)
+                    .channel("SMS")
+                    .to(request.getTo())
+                    .status("FAILED")
+                    .successCount(0)
                     .failCount(request.getTo().size())
                     .timestamp(LocalDateTime.now())
-                    .errorDetails("SMS non configure. "
-                        + "Definir TUNISIESMS_ID dans .env")
+                    .errorDetails("SMS non configuré")
                     .build();
         }
-
-        log.info("[{}][SMS] Envoi vers {} destinataire(s)",
-                id, request.getTo().size());
 
         for (String recipient : request.getTo()) {
             try {
                 String cleanNumber = recipient.replace("+", "");
                 sendSms(cleanNumber, request.getMessage());
                 success++;
-                log.info("[{}][SMS] SENT vers {}", id, recipient);
             } catch (Exception e) {
                 fail++;
                 lastError = e.getMessage();
-                log.error("[{}][SMS] FAILED vers {} : {}",
-                        id, recipient, e.getMessage());
             }
         }
 
@@ -81,30 +74,32 @@ public class SmsService {
                 .build();
     }
 
-    /**
-     * Envoie un SMS via l'API TunisieSMS.
-     */
     private void sendSms(String to, String message) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        log.info("Sending SMS to {}", senderName);
+        String date = java.time.LocalDate.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("id", apiId);
-        body.put("to", to);
-        body.put("from", senderName);
-        body.put("msg", message);
+        String time = java.time.LocalTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-        HttpEntity<Map<String, Object>> entity =
-                new HttpEntity<>(body, headers);
+        String url = apiUrl
+                + "?fct=sms"
+                + "&key=" + apiId
+                + "&mobile=" + to
+                + "&sms=" + message.replace(" ", "+")
+                + "&sender=" + senderName
+                + "&date=" + date
+                + "&heure=" + time;
 
-        ResponseEntity<String> resp = restTemplate.exchange(
-                apiUrl, HttpMethod.POST, entity, String.class);
+        log.info("[SMS] URL: {}", url);
 
-        if (!resp.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("TunisieSMS error: "
-                    + resp.getStatusCode() + " " + resp.getBody());
+        ResponseEntity<String> response =
+                new RestTemplate().getForEntity(url, String.class); // ⚠️ tu n’as pas défini restTemplate
+
+        log.info("[SMS] RESPONSE: {}", response.getBody());
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Erreur API SMS");
         }
-
-        log.info("[SMS] TunisieSMS reponse : {}", resp.getBody());
     }
 }

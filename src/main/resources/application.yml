@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: 8081
 
 spring:
   application:
@@ -24,13 +24,12 @@ spring:
 whatsapp:
   token: ${WHATSAPP_TOKEN:disabled}
   phone-id: ${WHATSAPP_PHONE_ID:disabled}
-  api-url: https://graph.facebook.com/v21.0
+  api-url: ${WHATSAPP_API_URL}
 
-#sms:
-  #provider: ${SMS_PROVIDER:tunisiesms}
-  #api-id: ${TUNISIESMS_ID:disabled}
-  #api-url: ${TUNISIESMS_URL:https://api.tunisiesms.tn/sms/send}
-  #sender-name: ${SMS_SENDER_NAME:RoboCare}
+sms:
+  api-id: ${TUNISIESMS_ID:disabled}
+  api-url: ${TUNISIESMS_API_URL}
+  sender-name: ${SMS_SENDER_NAME}
 
 logging:
   level:

@@ -23,7 +23,7 @@ public class WhatsappService {
     @Value("${whatsapp.phone-id:disabled}")
     private String phoneId;
 
-    @Value("${whatsapp.api-url:https://graph.facebook.com/v21.0/1101097773077897/messages}")
+    @Value("${whatsapp.api-url}")
     private String apiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -33,6 +33,7 @@ public class WhatsappService {
      * Si type = "PDF" et fileUrl present, envoie le document + message.
      */
     public NotificationResponse send(WhatsappRequest request) {
+        log.info("Sending request to Whatsapp service");
         String id = UUID.randomUUID().toString().substring(0, 8);
         int success = 0;
         int fail = 0;
@@ -61,6 +62,7 @@ public class WhatsappService {
                 String cleanNumber = recipient.replace("+", "");
 
                 if (hasPdf) {
+                    log.info("[{}][WHATSAPP] Sending pddddddddffffffff request to Recipient {}");
                     sendDocument(cleanNumber, request);
                 }
                 sendText(cleanNumber, request.getMessage());
@@ -95,6 +97,7 @@ public class WhatsappService {
      * Envoie un message texte simple.
      */
     private void sendText(String to, String message) {
+        log.info("apiUrl  sendText" + apiUrl);
         String url = apiUrl + "/" + phoneId + "/messages";
 
         HttpHeaders headers = new HttpHeaders();
@@ -128,8 +131,10 @@ public class WhatsappService {
      * Le PDF doit etre accessible via URL publique.
      */
     private void sendDocument(String to, WhatsappRequest request) {
-        String url = apiUrl + "/" + phoneId + "/messages";
 
+        String url = apiUrl + "/" + phoneId + "/messages";
+        log.info("WhatsApp request variables | apiUrl={} | phoneId={} | url={}",
+                apiUrl, phoneId, url);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
